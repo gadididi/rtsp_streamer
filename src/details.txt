@@ -1,0 +1,35 @@
+# for run:
+>> g++ -o rtsp_server main.cpp `pkg-config --cflags --libs gstreamer-rtsp-server-1.0`
+
+# open h264 video file from terminal
+>> gst-launch-1.0 filesrc location=dji.h264 ! h264parse ! avdec_h264 ! xvimagesink
+
+# probably same?
+    >> gst-launch-1.0 filesrc location=dji.h264  ! qtdemux " "! h264parse ! rtph264pay pt=96 name=pay0 " ")"
+
+
+
+
+******************************************good stream UDP terminal server-client*************************
+
+client udp:
+gst-launch-1.0 -e udpsrc port=5000 ! queue ! application/x-rtp,encoding-name=H264,payload=96,clock-rate=90000 ! rtph264depay ! h264parse ! decodebin  ! autovideosink
+
+
+server udp:
+gst-launch-1.0 -e filesrc location=dji.h264 ! video/x-h264,width=640,height=480,framerate=30/1 ! h264parse ! rtph264pay config-interval=1 ! udpsink host=127.0.0.1 port=5000
+
+***********************************************************************************************
+
+client rtsp: (with latency)
+gst-launch-1.0 playbin uri=rtsp://127.0.0.1:8554/test
+
+rtsp client - NO LATENCY:
+gst-launch-1.0 rtspsrc location=rtsp://127.0.0.1:8554/test ! rtph264depay ! decodebin ! videoconvert ! autovideosink sync=false
+
+rtsp client - 1 SEC latency:
+gst-launch-1.0 rtspsrc latency = 0 location=rtsp://127.0.0.1:8554/test  ! rtph264depay ! decodebin ! videoconvert ! autovideosink
+
+
+rule:
+gst-launch-1.0 [GET RAW VIDEO DATA] queue [SCALE] queue [COLORSPACE CONVERT] queue [ENCODE] queue [SEND WHEREVER]
